@@ -1,0 +1,10 @@
+{
+  "capture": "PASS",
+  "interface": "\\Device\\NPF_Loopback",
+  "port": 63825,
+  "packets": 39,
+  "http_packets": 6,
+  "stop": "PASS",
+  "BPF_scope": "PASS",
+  "time": "2026-11-10 17:26:31"
+}
