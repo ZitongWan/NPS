@@ -5,6 +5,7 @@ import queue
 import threading
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
+from tkinter.scrolledtext import ScrolledText
 from protocol import decode, display_filter, save_pcap, load_pcap, flow_text
 from capture import Npcap
 
@@ -12,7 +13,7 @@ class App:
     def __init__(self,root):
         self.root=root;root.title('雁栖湖网络嗅探器 · EX1A');root.geometry('1200x780')
         self.packets=[];self.q=queue.Queue(2000);self.stop=threading.Event();self.thread=None
-        self.dropped=0;self.error='';self.predicate=lambda p:True;self.npcap=None;self.devices=[]
+        self.dropped=0;self.error='';self.predicate=lambda p:True;self.npcap=None;self.devices=[];self.applied_search=''
         self.iface=tk.StringVar();self.bpf=tk.StringVar();self.expr=tk.StringVar();self.search=tk.StringVar()
         top=ttk.Frame(root,padding=8);top.pack(fill='x')
         ttk.Label(top,text='网卡').pack(side='left')
@@ -29,6 +30,9 @@ class App:
         actions=ttk.Frame(root,padding=8);actions.pack(fill='x')
         for label,fn in [('导入 PCAP',self.open),('导出全部 PCAP',self.save),('查看 TCP 流',self.follow),('清空',self.clear)]:
             ttk.Button(actions,text=label,command=fn).pack(side='left',padx=3)
+        self.status=tk.StringVar(value='就绪')
+        self.status_label=ttk.Label(root,textvariable=self.status,padding=8)
+        self.status_label.pack(side='bottom',fill='x')
         panes=ttk.Panedwindow(root,orient='vertical');panes.pack(fill='both',expand=True,padx=8)
         frame=ttk.Frame(panes);panes.add(frame,weight=3)
         columns=('id','time','src','dst','protocol','length','info')
@@ -41,9 +45,8 @@ class App:
         horizontal.pack(side='bottom',fill='x')
         self.table.pack(side='left',fill='both',expand=True);scroll.pack(side='right',fill='y')
         tabs=ttk.Notebook(panes);panes.add(tabs,weight=2)
-        self.detail=tk.Text(tabs,wrap='word',font=('Consolas',11));self.hex=tk.Text(tabs,wrap='none',font=('Consolas',10))
+        self.detail=ScrolledText(tabs,wrap='word',font=('Consolas',11));self.hex=ScrolledText(tabs,wrap='word',font=('Consolas',10))
         tabs.add(self.detail,text='协议字段');tabs.add(self.hex,text='原始字节 HEX / ASCII')
-        self.status=tk.StringVar(value='就绪');ttk.Label(root,textvariable=self.status,padding=8).pack(anchor='w')
         self.table.bind('<<TreeviewSelect>>',self.select)
         root.protocol('WM_DELETE_WINDOW',self.close)
         self.refresh();root.after(100,self.poll)
@@ -76,7 +79,7 @@ class App:
             except Exception as e:self.error=str(e)
         self.thread=threading.Thread(target=worker,daemon=True);self.thread.start()
     def visible(self,p):
-        key=self.search.get().lower()
+        key=self.applied_search
         return self.predicate(p) and (not key or key in f'{p.src} {p.dst} {p.info}'.lower())
     def insert(self,index,p):
         if self.visible(p):
@@ -88,6 +91,7 @@ class App:
             except queue.Empty:break
             if len(self.packets)>=5000:self.stop.set();self.dropped+=1;continue
             p=decode(*args);self.packets.append(p);self.insert(len(self.packets)-1,p)
+            if len(self.packets)>=5000:self.stop.set()
         if self.error:
             messagebox.showerror('捕获错误',self.error);self.error=''
         counts=collections.Counter(p.protocol for p in self.packets)
@@ -98,6 +102,7 @@ class App:
     def apply_filter(self):
         try:self.predicate=display_filter(self.expr.get())
         except (ValueError,SyntaxError) as e:messagebox.showerror('过滤表达式错误',str(e));return
+        self.applied_search=self.search.get().lower()
         self.table.delete(*self.table.get_children())
         for i,p in enumerate(self.packets):self.insert(i,p)
     def selected(self):
@@ -115,7 +120,7 @@ class App:
         p=self.selected()
         if p is None:return
         win=tk.Toplevel(self.root);win.title('TCP 双向流');win.geometry('950x600')
-        text=tk.Text(win,wrap='word',font=('Consolas',11));text.pack(fill='both',expand=True)
+        text=ScrolledText(win,wrap='word',font=('Consolas',11));text.pack(fill='both',expand=True)
         text.insert('end',flow_text(self.packets,p))
     def open(self):
         if self.active():messagebox.showinfo('提示','请先停止抓包');return

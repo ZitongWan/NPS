@@ -1,9 +1,13 @@
 test_boolean_filter (test_protocol.ProtocolTests.test_boolean_filter) ... ok
 test_dns (test_protocol.ProtocolTests.test_dns) ... ok
 test_filter_code_rejected (test_protocol.ProtocolTests.test_filter_code_rejected) ... ok
+test_filter_resource_limits (test_protocol.ProtocolTests.test_filter_resource_limits) ... ok
+test_filter_surrounding_whitespace (test_protocol.ProtocolTests.test_filter_surrounding_whitespace) ... ok
 test_fragment_not_parsed_as_tcp (test_protocol.ProtocolTests.test_fragment_not_parsed_as_tcp) ... ok
 test_http_nonstandard_port (test_protocol.ProtocolTests.test_http_nonstandard_port) ... ok
 test_icmp (test_protocol.ProtocolTests.test_icmp) ... ok
+test_ipv4_declared_length_truncated (test_protocol.ProtocolTests.test_ipv4_declared_length_truncated) ... ok
+test_ipv6_declared_length_truncated (test_protocol.ProtocolTests.test_ipv6_declared_length_truncated) ... ok
 test_ipv6_udp (test_protocol.ProtocolTests.test_ipv6_udp) ... ok
 test_loopback (test_protocol.ProtocolTests.test_loopback) ... ok
 test_pcap_roundtrip (test_protocol.ProtocolTests.test_pcap_roundtrip) ... ok
@@ -11,9 +15,10 @@ test_port_does_not_imply_http (test_protocol.ProtocolTests.test_port_does_not_im
 test_reverse_flow (test_protocol.ProtocolTests.test_reverse_flow) ... ok
 test_truncated_and_random_packets (test_protocol.ProtocolTests.test_truncated_and_random_packets) ... ok
 test_truncated_pcap (test_protocol.ProtocolTests.test_truncated_pcap) ... ok
+test_udp_length_exceeds_ip_payload (test_protocol.ProtocolTests.test_udp_length_exceeds_ip_payload) ... ok
 test_vlan (test_protocol.ProtocolTests.test_vlan) ... ok
 
 ----------------------------------------------------------------------
-Ran 14 tests in 0.031s
+Ran 19 tests in 0.016s
 
 OK

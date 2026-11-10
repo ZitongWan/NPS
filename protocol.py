@@ -61,7 +61,7 @@ def decode(ts,raw,wirelen=None,link=1):
             p.src=str(ipaddress.ip_address(b[12:16])); p.dst=str(ipaddress.ip_address(b[16:20]))
             frag=int.from_bytes(b[6:8],'big'); proto=b[9]
             p.details.append(f'IPv4 ihl={ihl} length={total} TTL={b[8]} protocol={proto} fragment_offset={frag&8191}')
-            if total>len(b): p.details.append('捕获长度小于 IPv4 总长度')
+            need(b,total)
             b=b[ihl:total]
             if frag & 0x3fff:
                 p.info='IPv4 分片：未重组，不解析上层'; return p
@@ -72,6 +72,7 @@ def decode(ts,raw,wirelen=None,link=1):
             p.src=str(ipaddress.ip_address(b[8:24]));p.dst=str(ipaddress.ip_address(b[24:40]))
             size=int.from_bytes(b[4:6],'big'); proto=b[6]
             p.details.append(f'IPv6 payload_length={size} hop_limit={b[7]}')
+            need(b,40+size)
             b=b[40:40+size]
             for _ in range(8):
                 if proto not in (0,43,44,60,51): break
@@ -97,6 +98,7 @@ def decode(ts,raw,wirelen=None,link=1):
         elif proto==17:
             need(b,8);p.sport,p.dport,n,_=struct.unpack('!HHHH',b[:8])
             if n<8: raise ValueError('非法 UDP length')
+            need(b,n)
             p.tags.add('UDP');p.protocol='UDP';p.payload=b[8:n]
             p.info=f'{p.sport} -> {p.dport} length={n}'; p.details.append('UDP '+p.info)
             if 53 in (p.sport,p.dport) and len(p.payload)>=12:
@@ -113,8 +115,11 @@ def decode(ts,raw,wirelen=None,link=1):
     return p
 
 def display_filter(expression):
+    expression=expression.strip()
     if not expression.strip(): return lambda p:True
+    if len(expression)>512: raise ValueError('过滤表达式不能超过 512 个字符')
     tree=ast.parse(expression,mode='eval')
+    if sum(1 for _ in ast.walk(tree))>128: raise ValueError('过滤表达式过于复杂')
     allowed={'TCP','UDP','HTTP','IPV4','IPV6','ICMP','ICMPV6','ARP','DNS','TLS','MALFORMED','OTHER'}
     for node in ast.walk(tree):
         if not isinstance(node,(ast.Expression,ast.BoolOp,ast.UnaryOp,ast.Name,ast.Load,ast.And,ast.Or,ast.Not)):

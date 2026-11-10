@@ -60,4 +60,23 @@ class ProtocolTests(unittest.TestCase):
         b=frame();b=b[:12]+b'\x81\x00\x00\x07'+b[12:]
         self.assertEqual(decode(0,b).protocol,'TCP')
 
+    def test_ipv4_declared_length_truncated(self):
+        p=decode(0,frame(payload=b'GET / HTTP/1.1\r\n')[:-1])
+        self.assertIn('MALFORMED',p.tags);self.assertNotIn('HTTP',p.tags)
+
+    def test_ipv6_declared_length_truncated(self):
+        p=decode(0,frame(17,b'hello',True)[:-1])
+        self.assertIn('MALFORMED',p.tags);self.assertNotIn('UDP',p.tags)
+
+    def test_udp_length_exceeds_ip_payload(self):
+        b=bytearray(frame(17,b'hello'));b[38:40]=struct.pack('!H',500)
+        self.assertIn('MALFORMED',decode(0,bytes(b)).tags)
+
+    def test_filter_resource_limits(self):
+        for expr in ['not '*130+'tcp',' or '.join(['tcp']*65)]:
+            with self.assertRaises(ValueError):display_filter(expr)
+
+    def test_filter_surrounding_whitespace(self):
+        self.assertTrue(display_filter('  tcp  ')(decode(0,frame())))
+
 if __name__=='__main__':unittest.main(verbosity=2)
