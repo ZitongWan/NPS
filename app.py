@@ -1,4 +1,3 @@
-"""Yanqi Sniffer: Python 3.10+, Tkinter and Npcap. No third-party Python modules."""
 import collections
 import datetime
 import queue

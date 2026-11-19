@@ -1,34 +1,40 @@
 # 雁栖湖网络嗅探器 · EX1A
 
-软件与系统安全课程实验 1A。姓名：ros；学号：202628015029010。
+课程：软件与安全  
+姓名：万梓桐  
+学号：202628015029010  
+培养单位：中国科学院软件研究所  
+实验：1A 网络嗅探器
 
 ## 运行
 
-Windows 安装带 Tkinter 的 64 位 Python 3.10 或以上，以及 Npcap。程序使用 Python 标准库，无须安装第三方 Python 包。若 Npcap 安装时限制了捕获权限，需要在管理员终端启动。
+Windows 需安装带 Tkinter 的 64 位 Python 和 Npcap。已在 Python 3.8.20 与 3.11.7 下验证；程序使用 Python 标准库，无须第三方 Python 包。若 Npcap 限制了捕获权限，需要在管理员终端启动。
 
-在源码目录双击 `启动.bat`，或在该目录的终端执行：
+在已准备好的 Python 环境中，进入源码目录执行：
 
 ```text
-py -3 app.py
+python app.py
 ```
 
-离线查看不需要抓包权限：点击“导入 PCAP”，选择 `samples/local_http.pcap`；显示过滤填 `http`，点击“应用”，选中报文查看协议字段、原始字节及 TCP 双向流。
+本机使用 Conda 的 `stage4` 环境，先执行 `conda activate stage4`；其他电脑使用自己配置好的环境，无须使用相同名称。后续命令中的 `python` 均指当前环境的解释器。
 
-Conda 环境也可运行。已在 `stage4`（Python 3.8.20）中验证 31 项测试通过及真实回环抓包；随机字节测试兼容该版本。在 PyCharm 终端执行 `conda activate stage4` 后，使用 `python -m unittest -v`、`python app.py` 和 `python -m http.server 8080 --bind 127.0.0.1 --directory samples`，以确保使用激活环境的解释器。该环境的独立记录位于 `samples/test_results_stage4_20261119.txt` 与 `samples/stage4_validation_20261119.*`。
+`启动.bat` 是可选入口，调用 Windows Python 启动器 `py -3`，不会自动激活 Conda 环境。
+
+离线查看：点击“导入 PCAP”，选择 `samples/local_http.pcap`；显示过滤填 `http`，点击“应用”，选中报文查看协议字段、原始字节及 TCP 双向流。
 
 ## 手动抓包演示
 
 1. 在源码目录打开终端 A，启动本地服务：
 
    ```text
-   py -3 -m http.server 8080 --bind 127.0.0.1 --directory samples
+   python -m http.server 8080 --bind 127.0.0.1 --directory samples
    ```
 
 2. 在嗅探器选择 `Adapter for loopback traffic capture`，捕获过滤填写 `tcp port 8080 and host 127.0.0.1`，点击“开始抓包”。
 3. 在终端 B 发起请求；每次执行产生一组请求相关报文，总包数可能变化：
 
    ```text
-   C:\Windows\System32\curl.exe --noproxy "*" http://127.0.0.1:8080/test_results.txt
+   C:\Windows\System32\curl.exe --noproxy "*" -sS -o NUL -w "HTTP status: %{http_code}\n" http://127.0.0.1:8080/test_results_20261119.txt
    ```
 
 4. 点击“停止”，等待状态栏变为“已停止”；显示过滤填 `http` 并点击“应用”，核对 GET 和响应。
@@ -41,15 +47,17 @@ Conda 环境也可运行。已在 `stage4`（Python 3.8.20）中验证 31 项测
 在源码目录执行：
 
 ```text
-py -3 -m unittest -v
-py -3 local_validation.py
+python -m unittest -v
+python local_validation.py
 ```
 
 第一条运行 31 项测试，不访问外部网络；界面状态测试使用控件替身。第二条调用 Npcap 实际捕获三次本机 HTTP 请求，检查请求响应、过滤范围及停止行为，默认输出到 `validation_output/`。可使用 `--output-dir` 指定其他目录，`samples/` 原始样例目录受保护。
 
 - `samples/local_http.pcap`、`validation.json`：11 月 10 日原始实验，39 包、6 个 HTTP 报文；报告图表使用这份记录。
 - `samples/revalidation_20261119.pcap`、`revalidation_20261119.json`：11 月 19 日复测，40 包、6 个 HTTP 报文。
-- `samples/test_results_20261119.txt`：本轮 31 项测试输出。`test_results.txt` 保留原始 19 项测试记录，用于手动 HTTP 演示。
+- `samples/test_results_20261119.txt`：本轮 31 项测试输出。`test_results.txt` 保留原始 19 项测试记录。
+
+- `samples/test_results_stage4_20261119.txt` 与 `samples/stage4_validation_20261119.*`：Python 3.8.20 环境中的 31 项测试输出及真实抓包记录。
 
 ## 文件与功能
 
