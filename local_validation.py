@@ -4,6 +4,8 @@ import threading
 import urllib.request
 import time
 import json
+import argparse
+import platform
 from pathlib import Path
 from capture import Npcap
 from protocol import decode, save_pcap
@@ -25,8 +27,16 @@ class Handler(http.server.BaseHTTPRequestHandler):
         pass
 
 
-def validate():
-    # 在回环接口捕获三次 HTTP 请求，并保存 PCAP 和验证结果。
+def validate(output_dir=None):
+    # 在回环接口捕获三次 HTTP 请求，将复测结果保存到独立目录。
+    samples = (
+        Path(output_dir)
+        if output_dir is not None
+        else Path(__file__).parent / "validation_output"
+    )
+    if samples.resolve() == (Path(__file__).parent / "samples").resolve():
+        raise ValueError("复测结果请选择 samples 以外的目录")
+    samples.mkdir(parents=True, exist_ok=True)
     n = Npcap()
     interfaces = n.interfaces()
     loop = next(
@@ -80,8 +90,6 @@ def validate():
         p.src == "127.0.0.1" and p.dst == "127.0.0.1" and port in (p.sport, p.dport)
         for p in packets
     )
-    samples = Path(__file__).parent / "samples"
-    samples.mkdir(exist_ok=True)
     save_pcap(samples / "local_http.pcap", packets)
     result = {
         "capture": "PASS",
@@ -92,6 +100,11 @@ def validate():
         "stop": "PASS",
         "BPF_scope": "PASS",
         "time": time.strftime("%Y-%m-%d %H:%M:%S"),
+        "environment": {
+            "system": platform.platform(),
+            "python": platform.python_version(),
+            "architecture": platform.architecture()[0],
+        },
     }
     (samples / "validation.json").write_text(
         json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8"
@@ -100,4 +113,6 @@ def validate():
 
 
 if __name__ == "__main__":
-    validate()
+    parser = argparse.ArgumentParser(description="运行本机回环 HTTP 抓包验证")
+    parser.add_argument("--output-dir", type=Path, help="复测输出目录，默认 validation_output")
+    validate(parser.parse_args().output_dir)

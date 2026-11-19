@@ -1,9 +1,14 @@
 """Bounded packet decoding, safe display filters, classic PCAP I/O."""
 import ast
+import datetime
 import ipaddress
+import math
+import os
 import re
 import struct
+import tempfile
 from dataclasses import dataclass, field
+from pathlib import Path
 
 
 @dataclass
@@ -23,6 +28,7 @@ class Packet:
     seq: int = 0
     flags: int = 0
     payload: bytes = b""
+    ack: int = 0
 
     def flow(self):
         # 对两端地址和端口排序，使双向 TCP 报文使用相同的分组键。
@@ -136,6 +142,7 @@ def decode(ts, raw, wirelen=None, link=1):
         if proto == 6:
             need(b, 20)
             p.sport, p.dport, p.seq, ack = struct.unpack("!HHII", b[:12])
+            p.ack = ack
             n = (b[12] >> 4) * 4
             if n < 20:
                 raise ValueError("非法 TCP data offset")
@@ -254,19 +261,47 @@ def display_filter(expression):
 
 
 def save_pcap(path, packets):
-    # 按经典 PCAP 格式保存文件头、时间戳和原始报文。
+    # 先写入同目录临时文件，全部成功后替换目标，保留保存失败前的文件。
+    path = Path(path)
+    packets = list(packets)
     links = {p.link for p in packets}
     if len(links) > 1:
         raise ValueError("PCAP 不能混合不同链路类型")
-    with open(path, "wb") as f:
-        f.write(
-            struct.pack("<IHHIIII", 0xA1B2C3D4, 2, 4, 0, 0, 65535, next(iter(links), 1))
-        )
-        for p in packets:
-            sec = int(p.time)
-            us = min(999999, max(0, round((p.time - sec) * 1e6)))
-            f.write(struct.pack("<IIII", sec, us, len(p.raw), p.wirelen))
-            f.write(p.raw)
+    temporary = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="wb",
+            dir=path.parent,
+            prefix=f".{path.name}.",
+            suffix=".tmp",
+            delete=False,
+        ) as f:
+            temporary = Path(f.name)
+            f.write(
+                struct.pack(
+                    "<IHHIIII", 0xA1B2C3D4, 2, 4, 0, 0, 65535, next(iter(links), 1)
+                )
+            )
+            for p in packets:
+                if not math.isfinite(p.time) or p.time < 0:
+                    raise ValueError("非法 PCAP 时间戳")
+                sec = int(p.time)
+                carry, us = divmod(round((p.time - sec) * 1e6), 1000000)
+                sec += carry
+                if (
+                    sec > 0xFFFFFFFF
+                    or not len(p.raw) <= p.wirelen <= 0xFFFFFFFF
+                    or len(p.raw) > 65535
+                ):
+                    raise ValueError("PCAP 记录长度或时间戳超出范围")
+                f.write(struct.pack("<IIII", sec, us, len(p.raw), p.wirelen))
+                f.write(p.raw)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(temporary, path)
+    finally:
+        if temporary is not None and temporary.exists():
+            temporary.unlink()
 
 
 def load_pcap(path, limit=5000):
@@ -287,6 +322,10 @@ def load_pcap(path, limit=5000):
         major, minor, _, _, snap, link = struct.unpack(order + "HHIIII", head[4:])
         if (major, minor) != (2, 4):
             raise ValueError("不支持的 PCAP 版本")
+        if snap == 0:
+            raise ValueError("PCAP 最大捕获长度必须大于 0")
+        if link not in (0, 1, 12, 108, 101):
+            raise ValueError(f"不支持的 PCAP 链路类型 {link}")
         for i in range(limit + 1):
             h = f.read(16)
             if not h:
@@ -321,11 +360,37 @@ def flow_text(packets, selected):
         "报文按捕获顺序排列。",
         "",
     ]
+    first_time = None
     for p in packets:
         if p.flow() == flow:
+            if first_time is None:
+                first_time = p.time
+            stamp = datetime.datetime.fromtimestamp(p.time).strftime("%H:%M:%S.%f")
+            elapsed = (p.time - first_time) * 1000
+            flags = (
+                "|".join(
+                    label
+                    for mask, label in (
+                        (0x01, "FIN"),
+                        (0x02, "SYN"),
+                        (0x04, "RST"),
+                        (0x08, "PSH"),
+                        (0x10, "ACK"),
+                        (0x20, "URG"),
+                        (0x40, "ECE"),
+                        (0x80, "CWR"),
+                    )
+                    if p.flags & mask
+                )
+                or "无"
+            )
             lines.append(
-                f"{p.time:.6f} {p.src}:{p.sport} -> {p.dst}:{p.dport} seq={p.seq} flags=0x{p.flags:02x} bytes={len(p.payload)}"
+                f"{stamp} (+{elapsed:.3f} ms) "
+                f"{endpoint((p.src, p.sport))} -> {endpoint((p.dst, p.dport))} "
+                f"seq={p.seq} ack={p.ack} flags={flags} (0x{p.flags:02x}) bytes={len(p.payload)}"
             )
             if p.payload:
                 lines.append(p.payload[:4096].decode("utf-8", "replace"))
+                if len(p.payload) > 4096:
+                    lines.append(f"负载显示：4096 / {len(p.payload)} 字节")
     return "\n".join(lines)

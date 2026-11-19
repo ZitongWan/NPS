@@ -17,6 +17,7 @@ class App:
         root.title("雁栖湖网络嗅探器 · EX1A")
         root.geometry("1200x780")
         self.packets = []
+        self.counts = collections.Counter()
         self.q = queue.Queue(2000)
         self.stop = threading.Event()
         self.thread = None
@@ -121,6 +122,7 @@ class App:
             messagebox.showinfo("提示", "请先停止抓包")
             return
         self.packets.clear()
+        self.counts.clear()
         self.table.delete(*self.table.get_children())
         self.dropped = 0
         while True:
@@ -128,6 +130,10 @@ class App:
                 self.q.get_nowait()
             except queue.Empty:
                 break
+        self.clear_details()
+
+    def clear_details(self):
+        # 列表重建或取消选择时清空详情，避免保留上一条报文的信息。
         for text in (self.detail, self.hex):
             text.delete("1.0", "end")
 
@@ -192,18 +198,18 @@ class App:
                 continue
             p = decode(*args)
             self.packets.append(p)
+            self.counts[p.protocol] += 1
             self.insert(len(self.packets) - 1, p)
             if len(self.packets) >= 5000:
                 self.stop.set()
         if self.error:
             messagebox.showerror("捕获错误", self.error)
             self.error = ""
-        counts = collections.Counter(p.protocol for p in self.packets)
         state = "捕获中" if self.active() else "已停止"
         self.startbutton.configure(state="disabled" if self.active() else "normal")
         self.status.set(
             f"{state} | 已保留 {len(self.packets)} / 5000 包 | 应用丢弃 {self.dropped} | "
-            + "  ".join(f"{k}:{v}" for k, v in counts.items())
+            + "  ".join(f"{k}:{v}" for k, v in self.counts.items())
         )
         self.root.after(100, self.poll)
 
@@ -213,9 +219,15 @@ class App:
             self.predicate = display_filter(self.expr.get())
         except (ValueError, SyntaxError) as e:
             messagebox.showerror("过滤表达式错误", str(e))
-            return
+            return False
         self.applied_search = self.search.get().lower()
+        self.rebuild_table()
+        return True
+
+    def rebuild_table(self):
+        # 使用已经生效的筛选条件重建列表，并清空旧选择的详情。
         self.table.delete(*self.table.get_children())
+        self.clear_details()
         for i, p in enumerate(self.packets):
             self.insert(i, p)
 
@@ -227,9 +239,9 @@ class App:
     def select(self, event=None):
         # 同步显示选中报文的协议字段、十六进制字节和 ASCII 内容。
         p = self.selected()
+        self.clear_details()
         if p is None:
             return
-        self.detail.delete("1.0", "end")
         self.detail.insert(
             "end",
             f"捕获长度={len(p.raw)} 线上长度={p.wirelen} 链路类型={p.link}\n"
@@ -240,7 +252,6 @@ class App:
             part = p.raw[i : i + 16]
             ascii = "".join(chr(v) if 32 <= v < 127 else "." for v in part)
             lines.append(f'{i:04x}  {part.hex(" "):<47}  {ascii}')
-        self.hex.delete("1.0", "end")
         self.hex.insert("end", "\n".join(lines))
 
     def follow(self):
@@ -264,10 +275,14 @@ class App:
         if not path:
             return
         try:
+            predicate = display_filter(self.expr.get())
             packets = list(load_pcap(path))
             self.clear()
             self.packets = packets
-            self.apply_filter()
+            self.counts.update(p.protocol for p in packets)
+            self.predicate = predicate
+            self.applied_search = self.search.get().lower()
+            self.rebuild_table()
         except Exception as e:
             messagebox.showerror("导入失败", str(e))
 

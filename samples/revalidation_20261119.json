@@ -1,0 +1,15 @@
+{
+  "capture": "PASS",
+  "interface": "\\Device\\NPF_Loopback",
+  "port": 53030,
+  "packets": 40,
+  "http_packets": 6,
+  "stop": "PASS",
+  "BPF_scope": "PASS",
+  "time": "2026-11-19 18:54:12",
+  "environment": {
+    "system": "Windows-10-10.0.26200-SP0",
+    "python": "3.11.7",
+    "architecture": "64bit"
+  }
+}
