@@ -122,7 +122,11 @@ class ProtocolTests(unittest.TestCase):
             self.assertIsNotNone(decode(0, raw[:n]))
         rng = random.Random(42)
         for _ in range(1000):
-            decode(0, rng.randbytes(rng.randrange(0, 300)))
+            size = rng.randrange(0, 300)
+            data = b""
+            if size:
+                data = rng.getrandbits(size * 8).to_bytes(size, "little")
+            decode(0, data)
 
     def test_fragment_not_parsed_as_tcp(self):
         # 验证 IPv4 分片不会直接进入 TCP 解析。

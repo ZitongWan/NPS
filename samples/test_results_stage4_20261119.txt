@@ -1,0 +1,36 @@
+test_boolean_filter (test_protocol.ProtocolTests) ... ok
+test_dns (test_protocol.ProtocolTests) ... ok
+test_filter_code_rejected (test_protocol.ProtocolTests) ... ok
+test_filter_resource_limits (test_protocol.ProtocolTests) ... ok
+test_filter_surrounding_whitespace (test_protocol.ProtocolTests) ... ok
+test_fragment_not_parsed_as_tcp (test_protocol.ProtocolTests) ... ok
+test_http_nonstandard_port (test_protocol.ProtocolTests) ... ok
+test_icmp (test_protocol.ProtocolTests) ... ok
+test_ipv4_declared_length_truncated (test_protocol.ProtocolTests) ... ok
+test_ipv6_declared_length_truncated (test_protocol.ProtocolTests) ... ok
+test_ipv6_udp (test_protocol.ProtocolTests) ... ok
+test_loopback (test_protocol.ProtocolTests) ... ok
+test_pcap_roundtrip (test_protocol.ProtocolTests) ... ok
+test_port_does_not_imply_http (test_protocol.ProtocolTests) ... ok
+test_reverse_flow (test_protocol.ProtocolTests) ... ok
+test_truncated_and_random_packets (test_protocol.ProtocolTests) ... ok
+test_truncated_pcap (test_protocol.ProtocolTests) ... ok
+test_udp_length_exceeds_ip_payload (test_protocol.ProtocolTests) ... ok
+test_vlan (test_protocol.ProtocolTests) ... ok
+test_flow_includes_ack_flags_time_and_ipv6_endpoints (test_regressions.FlowPresentationTests) ... ok
+test_flow_marks_payload_preview_limit (test_regressions.FlowPresentationTests) ... ok
+test_corrupt_import_preserves_existing_packets (test_regressions.GuiStateTests) ... ok
+test_filter_rebuild_clears_stale_details (test_regressions.GuiStateTests) ... ok
+test_import_and_clear_update_protocol_counts (test_regressions.GuiStateTests) ... ok
+test_invalid_filter_does_not_replace_imported_state (test_regressions.GuiStateTests) ... ok
+test_invalid_global_header_is_rejected (test_regressions.PcapProtectionTests) ... ok
+test_invalid_record_preserves_existing_file (test_regressions.PcapProtectionTests) ... ok
+test_microsecond_rounding_carries_to_next_second (test_regressions.PcapProtectionTests) ... ok
+test_pcap_byte_orders_and_timestamp_units (test_regressions.PcapProtectionTests) ... ok
+test_replace_failure_preserves_existing_file (test_regressions.PcapProtectionTests) ... ok
+test_reference_samples_are_protected (test_regressions.ValidationOutputTests) ... ok
+
+----------------------------------------------------------------------
+Ran 31 tests in 0.114s
+
+OK

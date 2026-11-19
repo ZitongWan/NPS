@@ -14,6 +14,8 @@ py -3 app.py
 
 离线查看不需要抓包权限：点击“导入 PCAP”，选择 `samples/local_http.pcap`；显示过滤填 `http`，点击“应用”，选中报文查看协议字段、原始字节及 TCP 双向流。
 
+Conda 环境也可运行。已在 `stage4`（Python 3.8.20）中验证 31 项测试通过及真实回环抓包；随机字节测试兼容该版本。在 PyCharm 终端执行 `conda activate stage4` 后，使用 `python -m unittest -v`、`python app.py` 和 `python -m http.server 8080 --bind 127.0.0.1 --directory samples`，以确保使用激活环境的解释器。该环境的独立记录位于 `samples/test_results_stage4_20261119.txt` 与 `samples/stage4_validation_20261119.*`。
+
 ## 手动抓包演示
 
 1. 在源码目录打开终端 A，启动本地服务：
