@@ -94,7 +94,7 @@ def decode(ts,raw,wirelen=None,link=1):
                 p.protocol='HTTP';p.tags.add('HTTP');p.info=p.payload.split(b'\r\n')[0].decode('ascii','replace')
                 p.details.append('HTTP/1 起始行 '+p.info)
             elif len(p.payload)>=5 and p.payload[0] in (20,21,22,23) and p.payload[1]==3 and p.payload[2]<=4:
-                p.protocol='TLS?';p.tags.add('TLS');p.details.append('TLS 记录头特征匹配，仅启发式识别，不解密')
+                p.protocol='TLS?';p.tags.add('TLS');p.details.append('TLS 记录头（特征匹配）')
         elif proto==17:
             need(b,8);p.sport,p.dport,n,_=struct.unpack('!HHHH',b[:8])
             if n<8: raise ValueError('非法 UDP length')
@@ -105,7 +105,7 @@ def decode(ts,raw,wirelen=None,link=1):
                 ident,flags,qd,an,ns,ar=struct.unpack('!6H',p.payload[:12])
                 if (flags>>11)&15==0:
                     p.tags.add('DNS');p.protocol='DNS';p.info=f'id={ident} QR={flags>>15} questions={qd} answers={an}'
-                    p.details.append('DNS 端口及头部启发式识别 '+p.info)
+                    p.details.append('DNS 头部 '+p.info)
         elif proto in (1,58):
             need(b,4);p.protocol='ICMP' if proto==1 else 'ICMPv6';p.tags.add(p.protocol.upper())
             p.info=f'type={b[0]} code={b[1]}';p.details.append(p.protocol+' '+p.info)
@@ -164,7 +164,10 @@ def load_pcap(path,limit=5000):
 def flow_text(packets,selected):
     flow=selected.flow()
     if flow is None:return '请选择一个 TCP / HTTP 报文。'
-    lines=['双向 TCP 流：按时间展示捕获到的段；不冒充完整 TCP 重组。',str(flow),'']
+    def endpoint(value):
+        address,port=value
+        return f'[{address}]:{port}' if ':' in address else f'{address}:{port}'
+    lines=['TCP 双向流',f'连接：{endpoint(flow[0])} <-> {endpoint(flow[1])}','报文按捕获顺序排列。','']
     for p in packets:
         if p.flow()==flow:
             lines.append(f'{p.time:.6f} {p.src}:{p.sport} -> {p.dst}:{p.dport} seq={p.seq} flags=0x{p.flags:02x} bytes={len(p.payload)}')

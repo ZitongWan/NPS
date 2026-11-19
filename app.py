@@ -26,7 +26,7 @@ class App:
         ttk.Label(bar,text='显示过滤').pack(side='left');ttk.Entry(bar,textvariable=self.expr,width=28).pack(side='left',padx=5)
         ttk.Label(bar,text='文本查找').pack(side='left');ttk.Entry(bar,textvariable=self.search,width=18).pack(side='left',padx=5)
         ttk.Button(bar,text='应用',command=self.apply_filter).pack(side='left')
-        ttk.Label(root,text='示例：BPF = tcp port 8080；显示 = (tcp or udp) and ipv4；只捕获本人或已获授权的流量。',padding=(8,0)).pack(anchor='w')
+        ttk.Label(root,text='过滤示例：捕获过滤 tcp port 8080；显示过滤 (tcp or udp) and ipv4',padding=(8,0)).pack(anchor='w')
         actions=ttk.Frame(root,padding=8);actions.pack(fill='x')
         for label,fn in [('导入 PCAP',self.open),('导出全部 PCAP',self.save),('查看 TCP 流',self.follow),('清空',self.clear)]:
             ttk.Button(actions,text=label,command=fn).pack(side='left',padx=3)
