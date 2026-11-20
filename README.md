@@ -52,13 +52,12 @@ python -m unittest -v
 python local_validation.py
 ```
 
-第一条运行 31 项测试，不访问外部网络；界面状态测试使用控件替身。第二条调用 Npcap 实际捕获三次本机 HTTP 请求，检查请求响应、过滤范围及停止行为，默认输出到 `validation_output/`。可使用 `--output-dir` 指定其他目录，`samples/` 原始样例目录受保护。
+第一条命令执行 31 项自动测试，界面状态测试使用模拟控件，无须访问外部网络。第二条命令调用 Npcap 捕获三次本机 HTTP 请求产生的流量，检查请求与响应、过滤范围及停止行为，将 PCAP 文件和验证信息保存至 `validation_output/`。使用 `--output-dir` 指定其他输出目录；`samples/` 保存随源码提供的实验记录，验证脚本不会覆盖该目录。
 
-- `samples/local_http.pcap`、`validation.json`：11 月 10 日原始实验，39 包、6 个 HTTP 报文；报告图表使用这份记录。
-- `samples/revalidation_20261119.pcap`、`revalidation_20261119.json`：11 月 19 日复测，40 包、6 个 HTTP 报文。
-- `samples/test_results_20261119.txt`：本轮 31 项测试输出。`test_results.txt` 保留原始 19 项测试记录。
-
-- `samples/test_results_stage4_20261119.txt` 与 `samples/stage4_validation_20261119.*`：Python 3.8.20 环境中的 31 项测试输出及真实抓包记录。
+- `samples/local_http.pcap`、`samples/validation.json`：回环 HTTP 通信记录，共 39 个报文，其中 6 个 HTTP 报文。
+- `samples/revalidation_20261119.pcap`、`samples/revalidation_20261119.json`：重复采集记录，共 40 个报文，其中 6 个 HTTP 报文。
+- `samples/test_results_20261119.txt`：31 项自动测试输出；`samples/test_results.txt`：19 项基础测试输出。
+- `samples/test_results_stage4_20261119.txt` 与 `samples/stage4_validation_20261119.*`：本地 Conda 环境 `stage4`（Python 3.8.20）中的 31 项测试输出及抓包记录。
 
 ## 文件与功能
 
